@@ -1,0 +1,34 @@
+GET http://localhost:8080/users
+###
+GET http://localhost:8080/classes
+###
+GET http://localhost:8080/classes/2
+###
+POST http://localhost:8080/register
+Content-Type: application/json
+
+{
+    "FullName": "Syed Fahad Mahmud",
+    "Email": "www.sf61561gmail.com",
+    "Password": "password123"
+}
+###
+PUT http://localhost:8080/users/1
+Content-Type: application/json
+
+{
+    "FullName": "Syed Fahad"
+}
+###
+DELETE http://localhost:8080/users/1
+###
+POST http://localhost:8080/classes
+Content-Type: application/json
+
+{
+    "name": "Class 4",
+    "totalSeat": 30
+}
+###
+POST http://localhost:8080/classes/2/holds
+X-Student-Id: 20152691234567891
