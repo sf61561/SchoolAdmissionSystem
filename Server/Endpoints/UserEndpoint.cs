@@ -106,7 +106,7 @@ public static class UserEndpoints
         });
         app.MapPost("/login", async (LoginUserDto loginuserdto, SchoolAdmissionSystemDbContext db, IPasswordHasher<Users> passwordHasher) =>
         {
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == loginuserdto.Id);
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == loginuserdto.Id || u.Email == loginuserdto.Email);
             if (user is null)
             {
                 return Results.NotFound(new

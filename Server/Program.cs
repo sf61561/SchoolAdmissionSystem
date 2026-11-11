@@ -9,6 +9,16 @@ Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddValidation();
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
 builder.Services.AddScoped<
     IPasswordHasher<Users>,
     PasswordHasher<Users>
@@ -28,6 +38,7 @@ builder.Services.AddDbContext<SchoolAdmissionSystemDbContext>(options =>
     )
 );
 var app = builder.Build();
+app.UseCors();
 
 app.MapGet("/db-test", async (SchoolAdmissionSystemDbContext db) =>
 {
