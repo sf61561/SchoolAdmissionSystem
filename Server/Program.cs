@@ -1,12 +1,20 @@
 using SchoolAdmissionSystem.Api.Endpoints;
 using Microsoft.EntityFrameworkCore;
 using SchoolAdmissionSystem.Api.Data;
+using DotNetEnv;
+using Microsoft.AspNetCore.Identity;
+using SchoolAdmissionSystem.Api.Models;
+using SchoolAdmissionSystem.Api.Enums;
+Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddValidation();
-var connectionString =
-    builder.Configuration["DATABASE_URL"];
-    if (string.IsNullOrWhiteSpace(connectionString))
+builder.Services.AddScoped<
+    IPasswordHasher<Users>,
+    PasswordHasher<Users>
+>();
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
+if (string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException(
         "DATABASE_URL environment variable is missing."
@@ -15,7 +23,9 @@ var connectionString =
 
 // Register PostgreSQL
 builder.Services.AddDbContext<SchoolAdmissionSystemDbContext>(options =>
-    options.UseNpgsql(connectionString)
+    options.UseNpgsql(connectionString, npgsql =>
+        npgsql.MapEnum<UserRole>("UserRole")
+    )
 );
 var app = builder.Build();
 

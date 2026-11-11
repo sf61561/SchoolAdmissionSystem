@@ -6,8 +6,7 @@ public record class UserDto(
     [Required] string Id,
     [Required] string FullName,
     [Required] string Email,
-    [Required] string Password,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    HoldStatus HoldStatus = HoldStatus.Held
+    [Required] UserRole Role = UserRole.Student
 );

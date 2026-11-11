@@ -7,8 +7,7 @@
       "launchBrowser": false,
       "applicationUrl": "http://localhost:8080",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "DATABASE_URL": "Host=localhost;Port=5432;Database=SchoolAdmissionSystem;Username=postgres;Password=12345678"
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
     "https": {

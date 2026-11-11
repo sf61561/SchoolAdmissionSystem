@@ -1,4 +1,4 @@
-GET http://localhost:8080/users
+GET http://localhost:8080/users/152452987125
 ###
 GET http://localhost:8080/classes
 ###
@@ -8,9 +8,18 @@ POST http://localhost:8080/register
 Content-Type: application/json
 
 {
-    "FullName": "Syed Fahad Mahmud",
-    "Email": "www.sf61561gmail.com",
-    "Password": "password123"
+    "id" : "20152691234567891",
+    "FullName": "Syed Fahad",
+    "Email": "www.sf61561@gmail.com",
+    "Password": "12345678@Sf"
+}
+###
+POST http://localhost:8080/login
+Content-Type: application/json
+
+{
+    "Id" : "20152691234567891",
+    "Password": "12345678@Sf"
 }
 ###
 PUT http://localhost:8080/users/1
@@ -26,7 +35,7 @@ POST http://localhost:8080/classes
 Content-Type: application/json
 
 {
-    "name": "Class 4",
+    "name": "Class 5",
     "totalSeat": 30
 }
 ###

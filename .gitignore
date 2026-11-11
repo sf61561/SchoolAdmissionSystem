@@ -89,3 +89,7 @@ logs/
 Thumbs.db
 ehthumbs.db
 desktop.ini
+
+.env
+.env.*
+!.env.example

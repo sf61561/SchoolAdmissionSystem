@@ -1,5 +1,8 @@
+using SchoolAdmissionSystem.Api.Data;
 using SchoolAdmissionSystem.Api.Dtos;
 using SchoolAdmissionSystem.Api.Enums;
+using Microsoft.EntityFrameworkCore;
+using SchoolAdmissionSystem.Api.Models;
 namespace SchoolAdmissionSystem.Api.Endpoints;
 
 public static class ClassEndpoints
@@ -13,48 +16,99 @@ public static class ClassEndpoints
     public static void MapClassEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/classes");
-        group.MapGet("/", () => Results.Ok(classesDtos));
-        group.MapGet("/{id}", (int id) =>{
-            var classesDto = classesDtos.Find(classesDto => classesDto.id == id.ToString());
-            return classesDto is not null ? Results.Ok(classesDto) : Results.NotFound();
+        group.MapGet("/", async (SchoolAdmissionSystemDbContext db) => Results.Ok(await db.Classes.ToListAsync()));
+        group.MapGet("/{id}", async (int id, SchoolAdmissionSystemDbContext db) =>{
+            var classes = await db.Classes.FindAsync(id);
+            return classes is not null ? Results.Ok(classes) : Results.NotFound();
         })
         .WithName("GetClass");
-        group.MapPost("/", (CreateClassDto createClassDto) =>
+        group.MapPost("/", async (CreateClassDto createClassDto, SchoolAdmissionSystemDbContext db) =>
         {
-            ClassesDto classesDto = new ClassesDto(
-                (classesDtos.Count + 1).ToString(),
-                createClassDto.name,
-                createClassDto.totalSeat,
-                0,
-                0,
-                createClassDto.totalSeat
-            );
-            classesDtos.Add(classesDto);
-            return Results.Created($"classes/{classesDto.id}", classesDto);
+            var classExists = await db.Classes.AnyAsync(c => c.Name == createClassDto.name);
+            if (classExists)
+            {
+                return Results.Conflict(new
+                {
+                    message = "Class already exists."
+                });
+            }
+            var newclass = new Classes{
+                Name = createClassDto.name,
+                TotalSeat = createClassDto.totalSeat,
+                HeldSeat = 0,
+                ConfirmedSeat = 0,
+                AvailableSeat = createClassDto.totalSeat
+            };
+            db.Classes.Add(newclass);
+            await db.SaveChangesAsync();
+            return Results.Created($"classes/{newclass.Id}", newclass);
         });
-        group.MapPost("/{id}/holds",(HttpContext context, int id) => {
-            var customeheader = context.Request.Headers["X-Student-Id"].ToString();
-            var classesDto = classesDtos.Find(classesDto => classesDto.id == id.ToString());
-            if (classesDto is null) return Results.NotFound();
-            if (classesDto.availableSeat <= 0) return Results.BadRequest("No available seats in this class.");
-            SeatHoldDto seatHoldDto = new SeatHoldDto(
-                (SeatHoldEndpoints.seatHoldDtos.Count + 1).ToString(),
-                id.ToString(),
-                customeheader,
-                DateTime.Now.AddMinutes(10),
-                HoldStatus.Held
+        group.MapPost("/{id}/holds", async (int id,HttpContext context,SchoolAdmissionSystemDbContext db) =>
+        {
+            // 1. Get student ID from request header
+            var studentId = context.Request.Headers["X-Student-Id"].ToString();
+            if (string.IsNullOrWhiteSpace(studentId))
+            {
+                return Results.BadRequest(new
+                {
+                    message = "X-Student-Id header is required."
+                });
+            }
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            var classExists = await db.Classes
+                .AnyAsync(c => c.Id == id);
+            if (!classExists)
+            {
+                return Results.NotFound(new
+                {
+                    message = "Class not found."
+                });
+            }
+            var studentExists = await db.Users
+                .AnyAsync(u => u.Id == studentId);
+
+            if (!studentExists)
+            {
+                return Results.NotFound(new
+                {
+                    message = "Student not found."
+                });
+            }
+            var updatedRows = await db.Classes
+                .Where(c => c.Id == id && c.AvailableSeat > 0)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(c => c.HeldSeat, c => c.HeldSeat + 1)
+                    .SetProperty(c => c.AvailableSeat, c => c.AvailableSeat - 1)
+                );
+
+            if (updatedRows == 0)
+            {
+                return Results.BadRequest(new
+                {
+                    message = "No available seats in this class."
+                });
+            }
+            var seatHold = new HoldSeat
+            {
+                ClassId = id,
+                StudentId = studentId,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                Status = HoldStatus.Held
+            };
+            db.HoldSeats.Add(seatHold);
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return Results.Created(
+                $"/holds/{seatHold.Id}",
+                new
+                {
+                    id = seatHold.Id,
+                    classId = seatHold.ClassId,
+                    studentId = seatHold.StudentId,
+                    expiresAt = seatHold.ExpiresAt,
+                    status = seatHold.Status
+                }
             );
-            ClassesDto updatedClassDto = new ClassesDto(
-                classesDto.id,
-                classesDto.name,
-                classesDto.totalSeat,
-                classesDto.heldSeat + 1,
-                classesDto.confirmedSeat,
-                classesDto.availableSeat - 1
-            );
-            classesDtos[classesDtos.FindIndex(c => c.id == id.ToString())] = updatedClassDto;
-            SeatHoldEndpoints.seatHoldDtos.Add(seatHoldDto);
-            return Results.Created($"holds/{seatHoldDto.holdId}", seatHoldDto);
         });
     }
 }
